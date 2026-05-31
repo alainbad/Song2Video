@@ -1,0 +1,112 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  CREATOR
+  PRO
+  STUDIO
+}
+
+enum ProjectStatus {
+  CREATED
+  UPLOADING
+  TRANSCRIBING
+  ANALYZING
+  GENERATING_STORYBOARD
+  GENERATING_SCENES
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id               String           @id @default(cuid())
+  clerkId          String           @unique
+  email            String           @unique
+  name             String?
+  credits          Int              @default(3)
+  subscriptionPlan SubscriptionPlan @default(FREE)
+  stripeCustomerId String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  projects         Project[]
+  payments         Payment[]
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String
+  title       String
+  status      ProjectStatus @default(CREATED)
+  errorMsg    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song        Song?
+  storyboard  Storyboard?
+  videoScenes VideoScene[]
+  finalVideo  FinalVideo?
+}
+
+model Song {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  fileUrl   String
+  duration  Float?
+  bpm       Float?
+  genre     String?
+  mood      String?
+  energy    Float?
+  lyrics    String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Storyboard {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  jsonData  Json
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model VideoScene {
+  id         String   @id @default(cuid())
+  projectId  String
+  sceneOrder Int
+  prompt     String
+  imageUrl   String?
+  videoUrl   String?
+  duration   Float?
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, sceneOrder])
+}
+
+model FinalVideo {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  downloadUrl String
+  resolution  String   @default("1920x1080")
+  fileSize    BigInt?
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  amount          Int
+  creditsAdded    Int
+  stripePaymentId String   @unique
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
