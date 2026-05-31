@@ -40,6 +40,28 @@ const STATUS_COLORS: Record<string, string> = {
   CREATED: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 }
 
+function RetryButton({ projectId, onRetry }: { projectId: string; onRetry: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const handleRetry = async () => {
+    setLoading(true)
+    try {
+      await fetch('/api/video/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      })
+      onRetry()
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <Button onClick={handleRetry} disabled={loading} size="sm" variant="outline" className="border-red-500/50 text-red-300 hover:bg-red-500/10 shrink-0">
+      {loading ? 'Retrying...' : 'Retry'}
+    </Button>
+  )
+}
+
 export function ProjectDetail({ project: initial }: { project: ProjectWithRelations }) {
   const [project, setProject] = useState(initial)
   const [polling, setPolling] = useState(!['COMPLETED', 'FAILED'].includes(initial.status))
@@ -125,9 +147,12 @@ export function ProjectDetail({ project: initial }: { project: ProjectWithRelati
       {/* Error */}
       {project.status === 'FAILED' && (
         <Card className="bg-red-500/10 border-red-500/30 text-white mb-6">
-          <CardContent className="pt-4">
-            <p className="text-red-300 font-medium mb-1">Generation failed</p>
-            <p className="text-red-400/80 text-sm">{project.errorMsg ?? 'An unknown error occurred.'}</p>
+          <CardContent className="pt-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-red-300 font-medium mb-1">Generation failed</p>
+              <p className="text-red-400/80 text-sm">{project.errorMsg ?? 'An unknown error occurred.'}</p>
+            </div>
+            <RetryButton projectId={project.id} onRetry={() => { fetchProject(); setPolling(true) }} />
           </CardContent>
         </Card>
       )}
