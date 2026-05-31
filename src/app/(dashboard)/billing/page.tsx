@@ -2,10 +2,10 @@ import { getDbUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CREDIT_PACKAGES } from '@/lib/credits'
 import { Coins } from 'lucide-react'
+import { PurchaseButton } from '@/components/billing/PurchaseButton'
 
 export default async function BillingPage() {
   const user = await getDbUser()
@@ -47,10 +47,7 @@ export default async function BillingPage() {
               <div className="text-sm text-white/60">{pkg.description}</div>
             </CardHeader>
             <CardContent>
-              <form action="/api/billing/create-checkout" method="POST">
-                <input type="hidden" name="packageId" value={pkg.id} />
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">Purchase</Button>
-              </form>
+              <PurchaseButton packageId={pkg.id} />
             </CardContent>
           </Card>
         ))}
