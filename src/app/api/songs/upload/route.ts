@@ -5,6 +5,8 @@ import { checkAndDeductCredits } from '@/lib/credits'
 import { pipelineQueue } from '@/lib/queue'
 import { getS3Url } from '@/lib/s3'
 import { z } from 'zod'
+import { checkRateLimit } from '@/lib/ratelimit'
+import { headers } from 'next/headers'
 
 const ConfirmUploadSchema = z.object({
   projectId: z.string().min(1),
@@ -14,6 +16,12 @@ const ConfirmUploadSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const headersList = await headers()
+    const ip = headersList.get('x-forwarded-for') ?? headersList.get('x-real-ip') ?? 'anonymous'
+    const { success } = await checkRateLimit(`upload:${ip}`)
+    if (!success) {
+      return NextResponse.json({ error: 'Too many requests. Please wait before uploading again.' }, { status: 429 })
+    }
     const user = await requireDbUser()
     const body = await req.json()
     const input = ConfirmUploadSchema.parse(body)

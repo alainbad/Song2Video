@@ -7,6 +7,8 @@ export async function processPipeline(job: Job<{ projectId: string; userId: stri
   try {
     await job.updateProgress(10)
     await prisma.project.update({ where: { id: projectId }, data: { status: 'TRANSCRIBING' } })
+    const { notifyGenerationStarted } = await import('@/services/notification.service')
+    await notifyGenerationStarted(projectId).catch(console.error)
     const { transcribeAudio } = await import('@/services/whisper.service')
     const lyrics = await transcribeAudio(projectId)
 
