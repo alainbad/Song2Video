@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import { prisma } from '@/lib/prisma'
+import * as Sentry from '@sentry/nextjs'
 
 export async function processPipeline(job: Job<{ projectId: string; userId: string; songDuration: number }>) {
   const { projectId } = job.data
@@ -38,6 +39,7 @@ export async function processPipeline(job: Job<{ projectId: string; userId: stri
     const { notifyUser } = await import('@/services/notification.service')
     await notifyUser(projectId).catch(console.error)
   } catch (error) {
+    Sentry.captureException(error)
     await prisma.project.update({ where: { id: projectId }, data: { status: 'FAILED', errorMsg: (error as Error).message } }).catch(console.error)
     throw error
   }
